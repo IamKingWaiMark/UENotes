@@ -88,6 +88,78 @@ At this point, when GroundSpeed is greater than 0, it will transition to "Walk /
     - First create a variable called "Direction" and then follow the instructions to [Get Character facing direction](Useful%20Animation%20Blueprint%20Nodes.md)
 
 
-     ![](./Assets/Clean%20Animation%20Blueprint/Base_Structure_9.png)
+    ![](./Assets/Clean%20Animation%20Blueprint/Base_Structure_9.png)
 
     At this point, you should be able to transition between idle and the walk/run animations.
+
+11. Add the jump / land states
+
+    1. Open the Main States state  machine
+    2. Add a State Machine for the land animation (name it Land) and connect it with the Locomotion state machine
+
+        ![](./Assets/Clean%20Animation%20Blueprint/Base_Structure_10.png)
+
+    3. For the transition logic, we wantto only allow it to transition from Land to Locomotion if shouldMove is true
+
+        ![](./Assets/Clean%20Animation%20Blueprint/Base_Structure_11.png)
+
+    4. Inside the Land state machine, use a landing animation
+
+        ![](./Assets/Clean%20Animation%20Blueprint/Base_Structure_12.png)
+
+    5. Crete a State Alias (name it To Falling)
+
+        We use a State Alias so we can group multiple state machine into 1 group and control how it can transition to another state machine
+
+        Select:
+            - Locomotion
+            - Land
+
+        ![](./Assets/Clean%20Animation%20Blueprint/Base_Structure_13.png)
+
+        Here, it is saying that this alias represents the Locomotion and Land State Machines so any animations we connect with this alias would be able to transition between them.
+
+    6. Add 2 new State Machines (Jump and Fall Loop) and connect it like this:
+        - To Falling > Jump
+        - To Falling > Fall Loop
+        - Jump > Fall Loop
+
+        ![](./Assets/Clean%20Animation%20Blueprint/Base_Structure_14.png)
+
+    7. Use a Jump animationfor the Jump State Machine
+
+        ![](./Assets/Clean%20Animation%20Blueprint/Base_Structure_15.png)
+
+        For the transition logic between "To Falling" and Jump, we want to check if the character is currently falling and if the Z velocity is greater than 100 (or any value).
+
+        ![](./Assets/Clean%20Animation%20Blueprint/Base_Structure_16.png)
+
+        To get the Z velocity, get the Velocity variable that was created earlier and Split it to get X, Y, and Z.
+
+        For the transition between Jump and Fall Loop, we just want it allow it without any validation checks
+
+        ![](./Assets/Clean%20Animation%20Blueprint/Base_Structure_19.png)
+
+    8. Use a Fall animation for the Fall Loop State Machine
+        
+        ![](./Assets/Clean%20Animation%20Blueprint/Base_Structure_17.png)
+
+        For the transition logic between "To Falling" and "Fall Loop", we want to check if the character is currently falling
+
+        ![](./Assets/Clean%20Animation%20Blueprint/Base_Structure_18.png)
+
+12. Add a State Alias (name it To Land) and connect it with the Land state machine
+
+    ![](./Assets/Clean%20Animation%20Blueprint/Base_Structure_20.png)
+
+    - Select Jump and Fall Loop so the Jump or Fall Loop states can transition to Land
+
+        ![](./Assets/Clean%20Animation%20Blueprint/Base_Structure_21.png)
+
+
+    For the transition logic, we want to transition to Land if the character is not falling.
+
+    ![](./Assets/Clean%20Animation%20Blueprint/Base_Structure_22.png)
+
+
+Now this base animation blueprint is complete. The character should be able to move and jump.
