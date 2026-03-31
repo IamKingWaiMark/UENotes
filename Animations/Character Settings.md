@@ -17,7 +17,7 @@ If true, it will rotate the character
 If false, it will prevent the character model from rotation
 
 
-### Use Controller Desiredd Rotation
+### Use Controller Desired Rotation
 
 This option allows the character to try to rotate toward the controller’s desired facing direction.
 
