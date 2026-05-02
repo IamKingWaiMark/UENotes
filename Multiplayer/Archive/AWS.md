@@ -2,6 +2,25 @@
 
 Using the AWS SDK for Unreal Engine to communicate with AWS
 
+
+List of aws cpp sdk libs
+```
+.\vcpkg search aws-sdk-cpp
+```
+
+
+Install commands
+
+- All
+```
+.\vcpkg install aws-sdk-cpp[*]:x64-windows --recurse
+```
+- Specific
+```
+.\vcpkg install aws-sdk-cpp[core,cognito-idp,apigateway,cloudformation,gamelift,lambda,s3]:x64-windows --recurse
+```
+
+
 # Creating the AWS SDK Plugin
 
 [How to Integrate the AWS C++ SDK with Unreal Engine](https://aws.amazon.com/blogs/gametech/how-to-integrate-the-aws-c-sdk-with-unreal-engine/)
@@ -32,7 +51,7 @@ Using the AWS SDK for Unreal Engine to communicate with AWS
 
     - Navigate to the newly created Plugin folder. Under Source/ create a new folder to house the AWS SDK. Again, name this whatever you like, but keep the name distinct from the plugin name (e.g. AWSSDK). This will be our SDK module folder. (If you do not see the source folder, then your project is a blueprint-only project or you’ve created a content-only plugin. This will only work for C++ projects)
 
-    - Add folders for libraries and the header files. I’ve named them Binaries/ and Include/ respectively. Add a file called [MODULE_NAME].Build.cs. The module name is the same as the folder name (in this case AWSSDK).
+    - Add folders for libraries and the header files. I’ve named them Binaries/Win64/ and Include/ respectively. Add a file called [MODULE_NAME].Build.cs. The module name is the same as the folder name (in this case AWSSDK).
 
     - Copy over the header files from the vcpkg include/ folder earlier into the new include/ folder. This will provide a central location for your code to reference header files.
 
@@ -60,69 +79,46 @@ Using the AWS SDK for Unreal Engine to communicate with AWS
                 "aws-c-http",
                 "aws-c-io",
                 "aws-c-mqtt",
-                "aws-cpp-sdk-access-management",
                 "aws-cpp-sdk-cognito-identity",
+                "aws-cpp-sdk-cognito-idp",
                 "aws-cpp-sdk-core",
-                "aws-cpp-sdk-iam",
-                "aws-cpp-sdk-kinesis",
                 "aws-crt-cpp",
                 "aws-c-s3",
+                "aws-c-sdkutils"
             };
 
             public AWSSDK(ReadOnlyTargetRules Target) : base(Target)
             {
                 // ModuleType.External tells the engine not to look for (or compile) any source code.
                 Type = ModuleType.External;
-                PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
-
-                // add the header files for reference
                 PublicIncludePaths.Add(Path.Combine(ModuleDirectory, "Include"));
 
-                // AWS SDK relies on certain identifiers being undefined, so this produces warnings
-                // Unreal engine treats certain warnings as errors and fails the build
-                // this line will disable those warnings:
-                bEnableUndefinedIdentifierWarnings = false;
-
-                // Dynamically linking to the SDK requires us to define the
-                // USE_IMPORT_EXPORT symbol for all build targets using the
-                // SDK. Source: https://github.com/aws/aws-sdk-cpp/blob/main/Docs/SDK_usage_guide.md#build-defines
                 PublicDefinitions.Add("USE_IMPORT_EXPORT");
-                PublicDefinitions.Add("AWS_CRT_CPP_USE_IMPORT_EXPORT");
 
-
-                if (Target.Platform == UnrealTargetPlatform.Win64)
+                if (Target.Type == TargetRules.TargetType.Editor || Target.Type == TargetRules.TargetType.Client)
                 {
-                    PublicDefinitions.Add("USE_WINDOWS_DLL_SEMANTICS");
-                }
+                    PublicDefinitions.Add("AWS_USE_IO_COMPLETION_PORTS=1");
+                    PublicDefinitions.Add("__clang_analyzer__=0");
+                    PublicDefinitions.Add("AWS_DEEP_CHECKS=0");
+                    PublicDefinitions.Add("_LIBCPP_STD_VER=20");
+                    string LibrarysPath = Path.Combine(ModuleDirectory, "Binaries", UnrealTargetPlatform.Win64.ToString());
+                    string OutputDir = Path.Combine("$(ProjectDir)", "Binaries", UnrealTargetPlatform.Win64.ToString());
 
-                // do this for each lib and dll
-                foreach (string libName in LibraryNames)
-                {
-                    string LibraryPath = Path.Combine(ModuleDirectory, "Binaries", Target.Platform.ToString());
-                    // add a new section for each platform you plan to compile for (only Win64 is included for this example)
-                    if (Target.Platform == UnrealTargetPlatform.Win64)
+                    foreach (string LibName in LibraryNames)
                     {
-                        PublicAdditionalLibraries.Add(Path.Combine(LibraryPath, libName + ".lib"));
-                        // Stage the library along with the target, so it can be loaded at runtime.
-                        RuntimeDependencies.Add("$(BinaryOutputDir)/" + libName + ".dll", Path.Combine(LibraryPath, libName + ".dll"));
-                    }
-                    else if (Target.Platform == UnrealTargetPlatform.Mac)
-                    {
-                        // add mac libraries
-                    }
-                    else if (Target.Platform == UnrealTargetPlatform.Linux)
-                    {
-                        // add linux libraries
+                        string LibFileName = LibName + ".lib";
+                        string DllFileName = LibName + ".dll";
+
+                        // Add the import library
+                        PublicAdditionalLibraries.Add(Path.Combine(LibrarysPath, LibFileName));
+
+                        // Do not load the DLL during startup. Delay-load the DLL when it is actually used.
+                        PublicDelayLoadDLLs.Add(DllFileName);
+
+                        // This stages the DLL next to the executable when you package your game.
+                        RuntimeDependencies.Add(Path.Combine(OutputDir, DllFileName), Path.Combine(LibrarysPath, DllFileName));
                     }
                 }
-
-                PrivateDependencyModuleNames.AddRange(
-                new string[] {
-                            "CoreUObject",
-                            "Engine",
-                            "Slate",
-                            "SlateCore",   
-                });
             }
         }
         ```
@@ -145,6 +141,8 @@ Using the AWS SDK for Unreal Engine to communicate with AWS
 # Start and Stop
 
 ```
+#include <aws/core/Aws.h>
+
 Aws::SDKOptions options;
 Aws::InitAPI(options); // <--- Must do this first
 
@@ -197,6 +195,8 @@ Essentially, they provide a way to create global-like objects without the messy 
     - In the header file, declare the options variable
 
         ```
+        #include <aws/core/Aws.h>
+        
         // Stored to ensure ShutdownAPI uses the same configuration as InitAPI
         Aws::SDKOptions Options;
         ```
@@ -220,6 +220,53 @@ Essentially, they provide a way to create global-like objects without the messy 
             Super::Deinitialize();
         }
         ```
+
+6. Creating the Config and Cient
+
+- Header
+
+    ```
+    #include <aws/core/Aws.h>
+    #include <aws/cognito-idp/CognitoIdentityProviderClient.h>
+    #include "aws/cognito-idp/model/ResendConfirmationCodeRequest.h"
+
+
+    protected:
+        Aws::SDKOptions Options;
+        // Use a unique_ptr or shared_ptr for the config to delay its creation
+        std::unique_ptr<Aws::Client::ClientConfiguration> ClientConfig;
+        std::shared_ptr<Aws::CognitoIdentityProvider::CognitoIdentityProviderClient> CognitoClient;
+    ```
+- CPP
+    ```
+    void UAwsSubsystem::Initialize(FSubsystemCollectionBase& Collection)
+    {
+        Super::Initialize(Collection);
+        
+        UE_LOG(LogTemp, Display, TEXT("Subsystem is starting..."));
+
+        ...
+
+
+        ClientConfig = std::make_unique<Aws::Client::ClientConfiguration>();
+        ClientConfig->region = "us-east-1";
+
+        CognitoClient = std::make_shared<Aws::CognitoIdentityProvider::CognitoIdentityProviderClient>(*ClientConfig);
+
+
+    }
+
+    void UMMOOnlineSubsystem::Deinitialize()
+    {
+        UE_LOG(LogTemp, Display, TEXT("Subsystem is stopping..."));
+
+        CognitoClient.reset();
+        Aws::ShutdownAPI(Options);
+
+        Super::Deinitialize();
+    }
+
+    ```
 
 ## Defining and using Blueprint callable functions
 
@@ -261,3 +308,64 @@ if (Sub)
     Sub->ExampleFunction(1.0f);
 }
 ```
+
+## Defining Configurations using INI files
+
+
+1. Add the Config specifier to the UCLASS Macro
+
+    ```
+    UCLASS(Config = Game) // Loads from DefaultGame.ini
+    ```
+2. Mark variables with UPROPERTY(Config)
+
+    ```
+    UPROPERTY(Config)
+    float MovementSpeedMultiplier;
+    ```
+
+3. In your DefaultGame.ini:
+
+    ```
+    [/Script/YourProjectName.MySubsystem]
+    MovementSpeedMultiplier=1.5
+    ```
+
+## Defining Configurations Project Settings
+
+- Dependencies
+
+    ````
+    PrivateDependencyModuleNames.AddRange(
+	new string[]
+	{
+		...
+        "DeveloperSettings",
+	}
+	);
+    ```
+
+1. Create a separate class inheriting from UDeveloperSettings.
+
+
+    ```
+    // MySettings.h
+    UCLASS(Config = Game, defaultconfig, meta = (DisplayName = "My Subsystem Settings"))
+    class UMySettings : public UDeveloperSettings {
+        GENERATED_BODY()
+
+    public:
+        UPROPERTY(Config, EditAnywhere, Category = "General")
+        int32 MaxRetryAttempts;
+    };
+    ```
+
+2. Accessing the configuration
+
+    ```
+    // Inside your Subsystem.cpp
+    void UMySubsystem::Initialize(FSubsystemCollectionBase& Collection) {
+        const UMySettings* Settings = GetDefault<UMySettings>();
+        int32 Retries = Settings->MaxRetryAttempts;
+    }
+    ```
