@@ -88,3 +88,22 @@ This example, we will use "Line Trace By Channel" for collision detection when a
     - Get the Widget Component > Get User Widget Object > Cast to the Widget Blueprint > Get the reference of the Animation > Play Animation
 
     ![](./Assets/Spawn%20Damage%20Numbers/PlayAnimationNodes.png)
+
+
+
+# Destorying the Actor when the Animation Finishes
+
+1. Get reference to the Widget or Animation
+2. Bind the Animation Finished Event
+
+    ![](./Assets/Spawn%20Damage%20Numbers/BindAnimation.png)
+
+3. Set:
+    - Animation = Animation reference from the Widget
+    - Target = Widget
+    - Delegate
+        - Add Event > Add Custom Event
+
+4. Call Desotry Actor when the animation finishes
+
+    ![](./Assets/Spawn%20Damage%20Numbers/DestroyActor.png)
