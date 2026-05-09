@@ -37,3 +37,15 @@ Adding Foiliage to the level
 
     ![](./Foliage/Collision%202.png)
 
+
+# Creating a Actor Foliage 
+
+
+Sometimes you may want to create a foliage that the character can interact with.
+
+Here is how.
+
+1. Create an Actor Blueprint
+2. Add a Static Mesh
+3. Switch to Foliage mode
+4. Click on the "+ Foliage" button and select "Actor Foliage"

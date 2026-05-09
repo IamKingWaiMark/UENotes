@@ -281,3 +281,16 @@ Instead of laying the texture down in a perfect, predictable grid, Texture Bombi
 
 
 ![](../Assets/Landscape/TextureBombing.png)
+
+
+
+# Addomg Holes in the Landscape
+
+1. Open the Landscape Material
+2. Select the Main node and set:
+    - Blend Mode: Masked
+    - Two Sided: Checked (for cave entrances, etc.)
+3. In the Editor, switch to the "Landscape Mode" and select the Sculpt tab.
+4. Select the Visibility Layer and start painting
+
+If the brush is blocky, it may be that the landscape's "Section Size" is large (e.g. 63 x 63)
