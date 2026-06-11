@@ -89,3 +89,19 @@ This documentation shows how to import VRoid models into Unreal Engine and apply
             - Connect this to a Cached Pose so it can be used elsewere in the animation blueprint
 
 
+
+
+# Removing Clothes in Blender
+
+1. Switch to Edit Mode
+2. Select the Material
+
+    ![](./Assets/VRoid%20Models%20To%20UE/MaterialSelect.png)
+
+3. Make sure the Select Mode is "Face" 
+
+    ![](./Assets/VRoid%20Models%20To%20UE/Face.png)
+
+4. Click on the "Select" button to select all the faces the material is applied to.
+
+5. Delete the faces
